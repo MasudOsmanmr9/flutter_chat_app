@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/dataModle/user.dart';
 import 'package:flutter_application_1/firebaseHelper.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 var loginUser = FirebaseAuth.instance.currentUser;
@@ -19,6 +21,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final auth = FirebaseAuth.instance;
   TextEditingController messageInput = TextEditingController();
 
+  UserModel? userData;
+
   getCurrentUser() {
     final user = auth.currentUser;
     if (user != null) {
@@ -30,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    userData = Provider.of<UserModel>(context, listen: false);
     getCurrentUser();
   }
 
@@ -38,7 +43,11 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(loginUser!.email.toString()),
+        // title: Text(loginUser!.email.toString()),
+        title: ListTile(
+          title: Text(userData!.email),
+          subtitle: Text(userData!.name),
+        ),
         actions: [
           IconButton(
               onPressed: () async {

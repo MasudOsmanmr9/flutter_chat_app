@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/firebaseHelper.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../dataModle/user.dart';
 
 var loginUser = FirebaseAuth.instance.currentUser;
 
@@ -13,6 +16,8 @@ class InboxScreen extends StatefulWidget {
 
 class _InboxScreenState extends State<InboxScreen> {
   Service service = Service();
+
+  UserModel? userData;
 
   final storeMessage = FirebaseFirestore.instance;
 
@@ -30,6 +35,7 @@ class _InboxScreenState extends State<InboxScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    userData = Provider.of<UserModel>(context, listen: false);
     getCurrentUser();
   }
 
@@ -38,7 +44,10 @@ class _InboxScreenState extends State<InboxScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(loginUser!.email.toString()),
+        title: ListTile(
+          title: Text(userData!.name),
+          subtitle: Text(userData!.email),
+        ),
         actions: [
           IconButton(
               onPressed: () async {

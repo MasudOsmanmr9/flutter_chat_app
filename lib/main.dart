@@ -1,5 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_application_1/dataModle/user.dart';
 import 'package:flutter_application_1/screens/chatscreen.dart';
+import 'package:flutter_application_1/screens/inboxScreen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -14,11 +18,18 @@ void main() async {
   SharedPreferences pref = await SharedPreferences.getInstance();
 
   var email = pref.get('email');
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: email == null ? LoginPage() : ChatScreen(),
-    //home: LoginPage(),
-  ));
+  // runApp(MaterialApp(
+  //   debugShowCheckedModeBanner: false,
+  //   home: email == null ? LoginPage() : ChatScreen(),
+  //   //home: LoginPage(),
+  // ));
+  runApp(MultiProvider(
+      providers: [Provider<UserModel>(create: (_) => UserModel())],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: email == null ? LoginPage() : ChatScreen(),
+        //home: LoginPage(),
+      )));
 }
 
 // class MyApp extends StatelessWidget {

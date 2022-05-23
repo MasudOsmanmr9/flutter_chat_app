@@ -3,9 +3,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/dataModle/user.dart';
 import 'package:flutter_application_1/screens/chatscreen.dart';
 import 'package:flutter_application_1/screens/inboxScreen.dart';
 import 'package:flutter_application_1/screens/login.dart';
+import 'package:provider/provider.dart';
 
 class Service {
   final auth = FirebaseAuth.instance;
@@ -21,10 +23,11 @@ class Service {
           'name': name,
           'uuid': signedInUser.user?.uid,
         });
-      }).then((value) => {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => ChatScreen()))
-              });
+      }).then((value) {
+        Provider.of<UserModel>(context, listen: false).addUserInfo(name, email);
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => InboxScreen()));
+      });
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         errorBox(context, 'The password provided is too weak.');
@@ -41,13 +44,15 @@ class Service {
   void loginuser(context, email, password) async {
     try {
       final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password)
-          .then((value) => {
-                // Navigator.push(context,
-                //     MaterialPageRoute(builder: (context) => ChatScreen()))
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => InboxScreen()))
-              });
+          .signInWithEmailAndPassword(email: email, password: password);
+      DocumentSnapshot<Map<String, dynamic>> snap =
+          await store.collection('Users').doc(credential.user?.uid).get();
+      UserConverter user =
+          UserConverter.fromMap(snap.data() as Map<String, dynamic>);
+      Provider.of<UserModel>(context, listen: false)
+          .addUserInfo(user.name, user.email);
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => InboxScreen()));
     } on FirebaseAuthException catch (e) {
       print(e.code);
 
