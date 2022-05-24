@@ -6,6 +6,8 @@ import 'package:flutter_application_1/firebaseHelper.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../dataModle/chatInfo.dart';
+
 var loginUser = FirebaseAuth.instance.currentUser;
 
 class ChatScreen extends StatefulWidget {
@@ -19,9 +21,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final storeMessage = FirebaseFirestore.instance;
 
   final auth = FirebaseAuth.instance;
+  specificRoomInfo? roomInfo;
   TextEditingController messageInput = TextEditingController();
 
   UserModel? userData;
+  pairedUserModel? pairedInfo;
 
   getCurrentUser() {
     final user = auth.currentUser;
@@ -35,6 +39,8 @@ class _ChatScreenState extends State<ChatScreen> {
     // TODO: implement initState
     super.initState();
     userData = Provider.of<UserModel>(context, listen: false);
+    roomInfo = Provider.of<specificRoomInfo>(context, listen: false);
+    pairedInfo = Provider.of<pairedUserModel>(context, listen: false);
     getCurrentUser();
   }
 
@@ -45,8 +51,8 @@ class _ChatScreenState extends State<ChatScreen> {
         automaticallyImplyLeading: false,
         // title: Text(loginUser!.email.toString()),
         title: ListTile(
-          title: Text(userData!.email),
-          subtitle: Text(userData!.name),
+          title: Text(pairedInfo!.email),
+          subtitle: Text(pairedInfo!.name),
         ),
         actions: [
           IconButton(
@@ -70,7 +76,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: SingleChildScrollView(
                       physics: ScrollPhysics(),
                       reverse: true,
-                      child: ShowMessages()))),
+                      child: ShowMessages(
+                        roomInfo: roomInfo,
+                      )))),
           Container(
             decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.teal[100]!))),
@@ -84,9 +92,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   )),
                 ),
                 IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       print(messageInput.text);
-                      storeMessage.collection('messages').doc().set({
+                      await storeMessage
+                          .collection('rooms')
+                          .doc(roomInfo!.roomId)
+                          .collection("messages")
+                          .add({
                         'msg': messageInput.text.trim(),
                         'user': loginUser?.email.toString(),
                         'time': DateTime.now()
@@ -107,14 +119,22 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class ShowMessages extends StatelessWidget {
+  final specificRoomInfo? roomInfo;
+  const ShowMessages({this.roomInfo, Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
+        // stream: FirebaseFirestore.instance
+        //     .collection('rooms')
+        //     .orderBy('time')
+        //     .snapshots(),
         stream: FirebaseFirestore.instance
-            .collection('messages')
+            .collection('rooms')
+            .doc(roomInfo!.roomId)
+            .collection("messages")
             .orderBy('time')
             .snapshots(),
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           print(snapshot);
           if (!snapshot.hasData) {
             return Center(
@@ -143,7 +163,13 @@ class ShowMessages extends StatelessWidget {
                         ? MainAxisAlignment.end
                         : MainAxisAlignment.start,
                     children: [
-                      Text(x['msg']),
+                      Expanded(
+                          child: Text(
+                        x['msg'],
+                        textAlign: loginUser!.email == x['user']
+                            ? TextAlign.end
+                            : TextAlign.start,
+                      )),
                     ],
                   ),
                   subtitle: Row(

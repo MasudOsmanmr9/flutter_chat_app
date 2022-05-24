@@ -23,3 +23,18 @@ class UserConverter {
     return UserConverter(name: data['name'], email: data['email']);
   }
 }
+
+class pairedUserModel {
+  String _name = '';
+  String _email = '';
+
+  String get name => _name;
+  String get email => _email;
+
+  // UserModel(this._name, this._email);
+
+  void addUserInfo(name, email) {
+    _name = name;
+    _email = email;
+  }
+}

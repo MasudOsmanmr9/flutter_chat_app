@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/dataModle/chatInfo.dart';
 import 'package:flutter_application_1/firebaseHelper.dart';
+import 'package:flutter_application_1/screens/chatscreen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../dataModle/user.dart';
 
 var loginUser = FirebaseAuth.instance.currentUser;
+UserModel? globalUserData;
 
 class InboxScreen extends StatefulWidget {
   @override
@@ -35,7 +38,7 @@ class _InboxScreenState extends State<InboxScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    userData = Provider.of<UserModel>(context, listen: false);
+    globalUserData = userData = Provider.of<UserModel>(context, listen: false);
     getCurrentUser();
   }
 
@@ -149,7 +152,9 @@ class ShowUsers extends StatelessWidget {
                         physics: ScrollPhysics(),
                         itemBuilder: (context, i) {
                           QueryDocumentSnapshot x = snapshot.data!.docs[i];
-                          return buildChatBubble(x: x);
+                          return x['email'] != globalUserData?.email
+                              ? buildChatBubble(x: x)
+                              : Container();
                         }),
                   );
                 }),
@@ -172,14 +177,63 @@ class buildChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () async {
-        print(x['name']);
-        SharedPreferences pref = await SharedPreferences.getInstance();
-        pref.remove('email');
-        final messageRef = FirebaseFirestore.instance
+        Provider.of<pairedUserModel>(context, listen: false).addUserInfo(
+            x['name'].toString().trim(), x['email'].toString().trim());
+        pairedUserModel pairedUser =
+            Provider.of<pairedUserModel>(context, listen: false);
+        print("${globalUserData!.name.trim()}-${pairedUser.name.trim()}");
+        String CurrentUserEmail = globalUserData!.name.trim();
+        String PairedUserEmail = x['name'].toString().trim();
+        // final CurrentUserEmail = RegExp(r'^(.*)@gmail.com$')
+        //     .firstMatch(globalUserData!.email.trim())
+        //     ?.group(1);
+        // final PairedUserEmail = RegExp(r'^(.*)@gmail.com$')
+        //     .firstMatch(x['email'].toString().trim())
+        //     ?.group(1);
+        QuerySnapshot<Map<String, dynamic>> existChat = await FirebaseFirestore
+            .instance
             .collection("rooms")
-            .doc("roomA")
-            .collection("messages")
-            .doc("message1");
+            .where("permission.$CurrentUserEmail", isEqualTo: true)
+            .where("permission.$PairedUserEmail", isEqualTo: true)
+            .get();
+
+        if (existChat.size != 0) {
+          print('accessing ${existChat.docs.first.id}');
+          Provider.of<specificRoomInfo>(context, listen: false).chatRoomId =
+              existChat.docs.first.id;
+          Provider.of<specificRoomInfo>(context, listen: false).pairedUserList =
+              [CurrentUserEmail.toString(), PairedUserEmail.toString()];
+
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => ChatScreen()));
+          return;
+        }
+
+        print(
+            'exxxxxxxxxxxxxxxxisst chaaaaaaaaaaaaaaaaaaaaaaaat ${existChat.docs} size ${existChat.size} and permission.$CurrentUserEmail');
+
+        DocumentReference<Map<String, dynamic>> roomDoc =
+            await FirebaseFirestore.instance.collection("rooms").add({
+          'pairs': [globalUserData!.name.trim(), x['name'].toString().trim()],
+          'permission': {
+            CurrentUserEmail.toString(): true,
+            PairedUserEmail.toString(): true
+          },
+          'time': DateTime.now()
+        });
+
+        Provider.of<specificRoomInfo>(context, listen: false).chatRoomId =
+            roomDoc.id;
+        Provider.of<specificRoomInfo>(context, listen: false).pairedUserList = [
+          globalUserData!.name.trim(),
+          x['name'].toString().trim()
+        ];
+
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => ChatScreen()));
+
+        // .collection("messages")
+        // .doc("message1");
       },
       child: Container(
         // height: 60.0,

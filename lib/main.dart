@@ -5,6 +5,7 @@ import 'package:flutter_application_1/screens/chatscreen.dart';
 import 'package:flutter_application_1/screens/inboxScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dataModle/chatInfo.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/login.dart';
@@ -24,12 +25,18 @@ void main() async {
   //   //home: LoginPage(),
   // ));
   runApp(MultiProvider(
-      providers: [Provider<UserModel>(create: (_) => UserModel())],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: email == null ? LoginPage() : ChatScreen(),
-        //home: LoginPage(),
-      )));
+      providers: [
+        Provider<UserModel>(create: (_) => UserModel()),
+        Provider<pairedUserModel>(create: (_) => pairedUserModel()),
+        Provider<specificRoomInfo>(create: (_) => specificRoomInfo()),
+      ],
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: email == null ? LoginPage() : ChatScreen(),
+          //home: LoginPage(),
+        );
+      }));
 }
 
 // class MyApp extends StatelessWidget {
