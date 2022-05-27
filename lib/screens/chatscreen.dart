@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/dataModle/user.dart';
 import 'package:flutter_application_1/firebaseHelper.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:http/http.dart' as http;
 import '../dataModle/chatInfo.dart';
 
 var loginUser = FirebaseAuth.instance.currentUser;
@@ -17,7 +21,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   Service service = Service();
-
+  http.Client client = http.Client();
   final storeMessage = FirebaseFirestore.instance;
 
   final auth = FirebaseAuth.instance;
@@ -41,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
     userData = Provider.of<UserModel>(context, listen: false);
     roomInfo = Provider.of<specificRoomInfo>(context, listen: false);
     pairedInfo = Provider.of<pairedUserModel>(context, listen: false);
+    FirebaseMessaging.instance.subscribeToTopic('myTopic');
     getCurrentUser();
   }
 
@@ -92,24 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   )),
                 ),
                 IconButton(
-                    onPressed: () async {
-                      print(messageInput.text);
-                      await storeMessage
-                          .collection('rooms')
-                          .doc(roomInfo!.roomId)
-                          .collection("messages")
-                          .add({
-                        'msg': messageInput.text.trim(),
-                        'user': loginUser?.email.toString(),
-                        'time': DateTime.now()
-                      }).then((value) async {
-                        await storeMessage
-                            .collection('rooms')
-                            .doc(roomInfo!.roomId)
-                            .update({'updated-time': DateTime.now()});
-                      });
-                      messageInput.clear();
-                    },
+                    onPressed: sentMessage,
                     icon: const Icon(
                       Icons.send,
                       color: Colors.teal,
@@ -120,6 +108,55 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  void sentMessage() async {
+    print(messageInput.text);
+    await storeMessage
+        .collection('rooms')
+        .doc(roomInfo!.roomId)
+        .collection("messages")
+        .add({
+      'msg': messageInput.text.trim(),
+      'user': loginUser?.email.toString(),
+      'time': DateTime.now()
+    }).then((value) async {
+      await storeMessage
+          .collection('rooms')
+          .doc(roomInfo!.roomId)
+          .update({'updated-time': DateTime.now()});
+      var url = Uri.parse('https://fcm.googleapis.com/fcm/send');
+      var body = {
+        "to": "/topics/myTopic",
+        "notification": {
+          "title": "${userData!.name}",
+          "body": "${messageInput.text.trim()}",
+          "mutable_content": true,
+          "sound": "Tri-tone"
+        },
+        "data": {
+          "type": 'order',
+          "id": '28',
+          "click_action": "FLUTTER_NOTIFICATION_CLICK"
+        }
+      };
+      final headers = {
+        'content-type': 'application/json',
+        'Authorization':
+            'key=AAAAIdsPrlI:APA91bGKc6RJ9fFCTXA-e5Obe5h2DQWlbqjIR4KdzwwI9X3zByYz_DpYMxN4E0Nju9hbvjSPUOCabOmT9khCNQI1PKLTmk22etnyt4PCUvomznL_NiHPIezaa32TsTxBA9XQR0zm47ze'
+      };
+
+      // final http.Response response = await client.post(url,
+      //     body: jsonEncode(body),
+      //     encoding: Encoding.getByName('utf-8'),
+      //     headers: headers);
+      // if (response.statusCode == 200) {
+      //   print('notifed successfully');
+      // } else {
+      //   print('notified unsuccessfull');
+      // }
+    });
+    messageInput.clear();
   }
 }
 
