@@ -79,35 +79,6 @@ class _InboxScreenState extends State<InboxScreen> {
                       child: ShowMessageLists(currentUser: userData)
                       //child: Container()
                       ))),
-          // Container(
-          //   decoration: BoxDecoration(
-          //       border: Border(top: BorderSide(color: Colors.teal[100]!))),
-          //   child: Row(
-          //     children: [
-          //       Expanded(
-          //         child: Container(
-          //             child: TextField(
-          //           controller: messageInput,
-          //           decoration: InputDecoration(hintText: 'Enter message...'),
-          //         )),
-          //       ),
-          //       IconButton(
-          //           onPressed: () {
-          //             print(messageInput.text);
-          //             storeMessage.collection('messages').doc().set({
-          //               'msg': messageInput.text.trim(),
-          //               'user': loginUser?.email.toString(),
-          //               'time': DateTime.now()
-          //             });
-          //             messageInput.clear();
-          //           },
-          //           icon: const Icon(
-          //             Icons.send,
-          //             color: Colors.teal,
-          //           )),
-          //     ],
-          //   ),
-          // )
         ],
       ),
     );
@@ -270,7 +241,7 @@ class ShowMessageLists extends StatefulWidget {
     required this.currentUser,
   }) : super(key: key) {
     CurrentUserUid = currentUser?.uid.trim();
-    print("permission.$CurrentUserUid");
+    //print("permission.$CurrentUserUid");
   }
 
   @override
@@ -286,11 +257,10 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
 
   @override
   Widget build(BuildContext context) {
-    print("buildddddddddddd permission.${widget.CurrentUserUid}");
     return StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection("rooms")
-            .where("permission.WtD8rnzRXENNNDIzzjlIE9Si4L63".trim(),
+            .where("permission.${widget.CurrentUserUid}".trim(),
                 isEqualTo: true)
             .orderBy('updated-time', descending: true)
             .snapshots(),
