@@ -43,10 +43,10 @@ Future<void> main() async {
   //   persistenceEnabled: true,
   //   cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   // )));
-  // FirebaseFirestore.instance.settings = const Settings(
-  //   persistenceEnabled: true,
-  //   cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  // );
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 
   SharedPreferences pref = await SharedPreferences.getInstance();
 

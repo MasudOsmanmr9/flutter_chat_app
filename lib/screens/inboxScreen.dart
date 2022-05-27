@@ -76,37 +76,38 @@ class _InboxScreenState extends State<InboxScreen> {
                   child: SingleChildScrollView(
                       physics: ScrollPhysics(),
                       // reverse: true,
-                      // child: ShowMessageLists()
-                      child: Container()))),
-          Container(
-            decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.teal[100]!))),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                      child: TextField(
-                    controller: messageInput,
-                    decoration: InputDecoration(hintText: 'Enter message...'),
-                  )),
-                ),
-                IconButton(
-                    onPressed: () {
-                      print(messageInput.text);
-                      storeMessage.collection('messages').doc().set({
-                        'msg': messageInput.text.trim(),
-                        'user': loginUser?.email.toString(),
-                        'time': DateTime.now()
-                      });
-                      messageInput.clear();
-                    },
-                    icon: const Icon(
-                      Icons.send,
-                      color: Colors.teal,
-                    )),
-              ],
-            ),
-          )
+                      child: ShowMessageLists(currentUser: userData)
+                      //child: Container()
+                      ))),
+          // Container(
+          //   decoration: BoxDecoration(
+          //       border: Border(top: BorderSide(color: Colors.teal[100]!))),
+          //   child: Row(
+          //     children: [
+          //       Expanded(
+          //         child: Container(
+          //             child: TextField(
+          //           controller: messageInput,
+          //           decoration: InputDecoration(hintText: 'Enter message...'),
+          //         )),
+          //       ),
+          //       IconButton(
+          //           onPressed: () {
+          //             print(messageInput.text);
+          //             storeMessage.collection('messages').doc().set({
+          //               'msg': messageInput.text.trim(),
+          //               'user': loginUser?.email.toString(),
+          //               'time': DateTime.now()
+          //             });
+          //             messageInput.clear();
+          //           },
+          //           icon: const Icon(
+          //             Icons.send,
+          //             color: Colors.teal,
+          //           )),
+          //     ],
+          //   ),
+          // )
         ],
       ),
     );
@@ -260,19 +261,45 @@ class buildChatBubble extends StatelessWidget {
   }
 }
 
-class ShowMessageLists extends StatelessWidget {
+class ShowMessageLists extends StatefulWidget {
+  UserModel? currentUser;
+  String? CurrentUserUid;
+
+  ShowMessageLists({
+    Key? key,
+    required this.currentUser,
+  }) : super(key: key) {
+    CurrentUserUid = currentUser?.uid.trim();
+    print("permission.$CurrentUserUid");
+  }
+
+  @override
+  State<ShowMessageLists> createState() => _ShowMessageListsState();
+}
+
+class _ShowMessageListsState extends State<ShowMessageLists> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    print("buildddddddddddd permission.${widget.CurrentUserUid}");
     return StreamBuilder(
         stream: FirebaseFirestore.instance
-            .collection('rooms')
+            .collection("rooms")
+            .where("permission.WtD8rnzRXENNNDIzzjlIE9Si4L63".trim(),
+                isEqualTo: true)
             .orderBy('updated-time', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           print(snapshot);
           if (!snapshot.hasData) {
             return const Center(
-              child: CircularProgressIndicator(),
+              // child: CircularProgressIndicator(),
+              child: const Text('Data exist? checking'),
             );
           }
 
@@ -282,7 +309,8 @@ class ShowMessageLists extends StatelessWidget {
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              //child: CircularProgressIndicator(),
+              child: const Text('Connection state waiting!!'),
             );
           }
 
@@ -297,8 +325,10 @@ class ShowMessageLists extends StatelessWidget {
                 List<String> pairedUserList = List<String>.from(x['pairs']);
                 UserModel currentUser =
                     Provider.of<UserModel>(context, listen: false);
-                String PairedUserName =
-                    pairedUserList.singleWhere((i) => i != currentUser.name);
+                String PairedUserName = pairedUserList.firstWhere(
+                    (i) => i != currentUser.name,
+                    orElse: () => null!);
+
                 return InkWell(
                   key: UniqueKey(),
                   onTap: () {
