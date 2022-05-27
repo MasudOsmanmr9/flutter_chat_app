@@ -102,6 +102,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         'msg': messageInput.text.trim(),
                         'user': loginUser?.email.toString(),
                         'time': DateTime.now()
+                      }).then((value) async {
+                        await storeMessage
+                            .collection('rooms')
+                            .doc(roomInfo!.roomId)
+                            .update({'updated-time': DateTime.now()});
                       });
                       messageInput.clear();
                     },

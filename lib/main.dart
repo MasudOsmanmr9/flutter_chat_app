@@ -15,14 +15,27 @@ import 'package:flutter_application_1/screens/login.dart';
 import 'package:flutter_application_1/screens/wrapper.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   print('Handling a background message ${message.messageId}');
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await FlutterLocalNotificationsPlugin()
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
   );
 
   // FirebaseFirestore.instance.enablePersistence(PersistenceSettings(
@@ -58,6 +71,16 @@ Future<void> main() async {
       }));
 }
 
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel', // id
+  'High Importance Notifications', // title
+  description:
+      'This channel is used for important notifications.', // description
+  importance: Importance.high,
+);
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -78,7 +101,7 @@ class _MyAppState extends State<MyApp> {
     // TODO: implement initState
     super.initState();
     sharedpredInfo();
-    getToken();
+    // getToken();
     initMessaging();
   }
 
@@ -95,28 +118,83 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  // void initMessaging() {
+  //   var androiInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  //   var iosInit = IOSInitializationSettings();
+  //   var initSettings =
+  //       InitializationSettings(android: androiInit, iOS: iosInit);
+  //   flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  //   flutterLocalNotificationsPlugin.initialize(initSettings);
+  //   var androidDetails = AndroidNotificationDetails('1', 'default',
+  //       channelDescription: "Channel Description",
+  //       importance: Importance.high,
+  //       priority: Priority.high);
+  //   var iosDetails = IOSNotificationDetails();
+  //   var generalNotificationDetails =
+  //       NotificationDetails(android: androidDetails, iOS: iosDetails);
+  //   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+  //     RemoteNotification notification = message.notification!;
+  //     AndroidNotification android = message.notification!.android!;
+  //     if (notification != null && android != null) {
+  //       flutterLocalNotificationsPlugin.show(notification.hashCode,
+  //           notification.title, notification.body, generalNotificationDetails);
+  //     }
+  //   });
+  //   getToken();
+  // }
+
   void initMessaging() {
-    var androiInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    var iosInit = IOSInitializationSettings();
-    var initSettings =
-        InitializationSettings(android: androiInit, iOS: iosInit);
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    flutterLocalNotificationsPlugin.initialize(initSettings);
-    var androidDetails = AndroidNotificationDetails('1', 'default',
-        channelDescription: "Channel Description",
-        importance: Importance.high,
-        priority: Priority.high);
-    var iosDetails = IOSNotificationDetails();
-    var generalNotificationDetails =
-        NotificationDetails(android: androidDetails, iOS: iosDetails);
+    var initializationSettingsAndroid =
+        new AndroidInitializationSettings('ic_launcher');
+    var initialzationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    var initializationSettings =
+        InitializationSettings(android: initialzationSettingsAndroid);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification notification = message.notification!;
       AndroidNotification android = message.notification!.android!;
       if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(notification.hashCode,
-            notification.title, notification.body, generalNotificationDetails);
+        flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                color: Colors.blue,
+                // TODO add a proper drawable resource to android, for now using
+                //      one that already exists in example app.
+                icon: "@mipmap/ic_launcher",
+              ),
+            ));
       }
     });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      RemoteNotification notification = message.notification!;
+      AndroidNotification android = message.notification!.android!;
+      if (notification != null && android != null) {
+        showDialog(
+            context: context,
+            builder: (_) {
+              return AlertDialog(
+                title: Text(notification.title!),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [Text(notification.body!)],
+                  ),
+                ),
+              );
+            });
+      }
+    });
+
+    getToken();
   }
 
   @override

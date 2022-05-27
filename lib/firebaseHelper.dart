@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 class Service {
   final auth = FirebaseAuth.instance;
   final store = FirebaseFirestore.instance;
-
+  String? signedUserId;
   void createUser(context, email, password, name) async {
     try {
       await auth
@@ -23,8 +23,13 @@ class Service {
           'name': name,
           'uuid': signedInUser.user?.uid,
         });
+        signedUserId = signedInUser.user?.uid;
       }).then((value) {
-        Provider.of<UserModel>(context, listen: false).addUserInfo(name, email);
+        print('this is value after firestore user entry $signedUserId');
+        Provider.of<UserModel>(context, listen: false)
+            .addUserInfo(name, email, signedUserId);
+        print(
+            'uuuuuuuuuuuuuuuuuuuuuuuid stored create user ${Provider.of<UserModel>(context, listen: false).uid}');
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => InboxScreen()));
       });
@@ -47,10 +52,13 @@ class Service {
           .signInWithEmailAndPassword(email: email, password: password);
       DocumentSnapshot<Map<String, dynamic>> snap =
           await store.collection('Users').doc(credential.user?.uid).get();
+      print(snap.data());
       UserConverter user =
           UserConverter.fromMap(snap.data() as Map<String, dynamic>);
       Provider.of<UserModel>(context, listen: false)
-          .addUserInfo(user.name, user.email);
+          .addUserInfo(user.name, user.email, user.uid);
+      // print(
+      //     'uuuuuuuuuuuuuuuuuuuuuuuid stored login user ${Provider.of<UserModel>(context, listen: false).uid}');
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => InboxScreen()));
     } on FirebaseAuthException catch (e) {

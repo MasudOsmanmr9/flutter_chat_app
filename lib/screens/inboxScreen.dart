@@ -75,8 +75,9 @@ class _InboxScreenState extends State<InboxScreen> {
                   color: Colors.blue[100],
                   child: SingleChildScrollView(
                       physics: ScrollPhysics(),
-                      reverse: true,
-                      child: ShowMessages()))),
+                      // reverse: true,
+                      // child: ShowMessageLists()
+                      child: Container()))),
           Container(
             decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.teal[100]!))),
@@ -178,23 +179,21 @@ class buildChatBubble extends StatelessWidget {
     return InkWell(
       onTap: () async {
         Provider.of<pairedUserModel>(context, listen: false).addUserInfo(
-            x['name'].toString().trim(), x['email'].toString().trim());
+            x['name'].toString().trim(),
+            x['email'].toString().trim(),
+            x['uuid'].toString().trim());
         pairedUserModel pairedUser =
             Provider.of<pairedUserModel>(context, listen: false);
         print("${globalUserData!.name.trim()}-${pairedUser.name.trim()}");
-        String CurrentUserEmail = globalUserData!.name.trim();
-        String PairedUserEmail = x['name'].toString().trim();
-        // final CurrentUserEmail = RegExp(r'^(.*)@gmail.com$')
-        //     .firstMatch(globalUserData!.email.trim())
-        //     ?.group(1);
-        // final PairedUserEmail = RegExp(r'^(.*)@gmail.com$')
-        //     .firstMatch(x['email'].toString().trim())
-        //     ?.group(1);
+        UserModel cuurentUser = Provider.of<UserModel>(context, listen: false);
+        print("${cuurentUser.uid.trim()}-${pairedUser.name.trim()}");
+        String CurrentUserUid = cuurentUser.uid.trim();
+        String PairedUserUid = x['uuid'].toString().trim();
         QuerySnapshot<Map<String, dynamic>> existChat = await FirebaseFirestore
             .instance
             .collection("rooms")
-            .where("permission.$CurrentUserEmail", isEqualTo: true)
-            .where("permission.$PairedUserEmail", isEqualTo: true)
+            .where("permission.$CurrentUserUid", isEqualTo: true)
+            .where("permission.$PairedUserUid", isEqualTo: true)
             .get();
 
         if (existChat.size != 0) {
@@ -202,7 +201,7 @@ class buildChatBubble extends StatelessWidget {
           Provider.of<specificRoomInfo>(context, listen: false).chatRoomId =
               existChat.docs.first.id;
           Provider.of<specificRoomInfo>(context, listen: false).pairedUserList =
-              [CurrentUserEmail.toString(), PairedUserEmail.toString()];
+              [CurrentUserUid.toString(), PairedUserUid.toString()];
 
           Navigator.push(
               context, MaterialPageRoute(builder: (context) => ChatScreen()));
@@ -210,16 +209,17 @@ class buildChatBubble extends StatelessWidget {
         }
 
         print(
-            'exxxxxxxxxxxxxxxxisst chaaaaaaaaaaaaaaaaaaaaaaaat ${existChat.docs} size ${existChat.size} and permission.$CurrentUserEmail');
+            'exxxxxxxxxxxxxxxxisst chaaaaaaaaaaaaaaaaaaaaaaaat ${existChat.docs} size ${existChat.size} and permission.$CurrentUserUid');
 
         DocumentReference<Map<String, dynamic>> roomDoc =
             await FirebaseFirestore.instance.collection("rooms").add({
           'pairs': [globalUserData!.name.trim(), x['name'].toString().trim()],
           'permission': {
-            CurrentUserEmail.toString(): true,
-            PairedUserEmail.toString(): true
+            CurrentUserUid.toString(): true,
+            PairedUserUid.toString(): true
           },
-          'time': DateTime.now()
+          'time': DateTime.now(),
+          'updated-time': DateTime.now()
         });
 
         Provider.of<specificRoomInfo>(context, listen: false).chatRoomId =
@@ -260,13 +260,13 @@ class buildChatBubble extends StatelessWidget {
   }
 }
 
-class ShowMessages extends StatelessWidget {
+class ShowMessageLists extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
         stream: FirebaseFirestore.instance
-            .collection('messages')
-            .orderBy('time')
+            .collection('rooms')
+            .orderBy('updated-time', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           print(snapshot);
@@ -290,25 +290,49 @@ class ShowMessages extends StatelessWidget {
               itemCount: snapshot.data?.docs.length,
               shrinkWrap: true,
               primary: true,
+              //reverse: true,
               physics: const ScrollPhysics(),
               itemBuilder: (context, i) {
                 QueryDocumentSnapshot x = snapshot.data!.docs[i];
-                return ListTile(
-                  title: Row(
-                    mainAxisAlignment: loginUser!.email == x['user']
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.start,
-                    children: [
-                      Text(x['msg']),
-                    ],
-                  ),
-                  subtitle: Row(
-                    mainAxisAlignment: loginUser!.email == x['user']
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.start,
-                    children: [
-                      Text(x['user']),
-                    ],
+                List<String> pairedUserList = List<String>.from(x['pairs']);
+                UserModel currentUser =
+                    Provider.of<UserModel>(context, listen: false);
+                String PairedUserName =
+                    pairedUserList.singleWhere((i) => i != currentUser.name);
+                return InkWell(
+                  key: UniqueKey(),
+                  onTap: () {
+                    print('masud osman');
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        const BoxShadow(
+                          color: Colors.grey,
+                          blurRadius: 10.0, // soften the shadow
+                          spreadRadius: 5.0, //extend the shadow
+                          offset: Offset(
+                            0.0, // Move to right 10  horizontally
+                            10.0, // Move to bottom 10 Vertically
+                          ),
+                        )
+                      ],
+                    ),
+                    child: ListTile(
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(PairedUserName),
+                        ],
+                      ),
+                      subtitle: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const Text('tap to read messages'),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               });
