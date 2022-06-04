@@ -186,6 +186,8 @@ class buildChatBubble extends StatelessWidget {
         DocumentReference<Map<String, dynamic>> roomDoc =
             await FirebaseFirestore.instance.collection("rooms").add({
           'pairs': [globalUserData!.name.trim(), x['name'].toString().trim()],
+          'pairsUid': [CurrentUserUid, PairedUserUid],
+          'pairsEmail': [cuurentUser.email, pairedUser.email],
           'permission': {
             CurrentUserUid.toString(): true,
             PairedUserUid.toString(): true
@@ -258,10 +260,15 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
+        // stream: FirebaseFirestore.instance
+        //     .collection("rooms")
+        //     .where("permission.${widget.CurrentUserUid}".trim(),
+        //         isEqualTo: true)
+        //     .orderBy('updated-time', descending: true)
+        //     .snapshots(),
         stream: FirebaseFirestore.instance
             .collection("rooms")
-            .where("permission.${widget.CurrentUserUid}".trim(),
-                isEqualTo: true)
+            .where('pairsUid', arrayContains: globalUserData?.uid)
             .orderBy('updated-time', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -291,18 +298,64 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
               //reverse: true,
               physics: const ScrollPhysics(),
               itemBuilder: (context, i) {
-                QueryDocumentSnapshot x = snapshot.data!.docs[i];
-                List<String> pairedUserList = List<String>.from(x['pairs']);
+                //current user Info
                 UserModel currentUser =
                     Provider.of<UserModel>(context, listen: false);
+                String CurrentUserUid = currentUser.uid.trim();
+
+                //paired user Info
+
+                QueryDocumentSnapshot x = snapshot.data!.docs[i];
+                List<String> pairedUserList = List<String>.from(x['pairs']);
+                List<String> pairedUserUidList =
+                    List<String>.from(x['pairsUid']);
+                List<String> pairedUserEmailList =
+                    List<String>.from(x['pairsEmail']);
+
                 String PairedUserName = pairedUserList.firstWhere(
                     (i) => i != currentUser.name,
+                    orElse: () => null!);
+                String PairedUserUid = pairedUserUidList.firstWhere(
+                    (i) => i != currentUser.uid,
+                    orElse: () => null!);
+                String PairedUserEmail = pairedUserEmailList.firstWhere(
+                    (i) => i != currentUser.email,
                     orElse: () => null!);
 
                 return InkWell(
                   key: UniqueKey(),
-                  onTap: () {
-                    print('masud osman');
+                  onTap: () async {
+                    print('masud osman $PairedUserName');
+                    QuerySnapshot<Map<String, dynamic>> existChat =
+                        await FirebaseFirestore.instance
+                            .collection("rooms")
+                            .where("permission.$CurrentUserUid",
+                                isEqualTo: true)
+                            .where("permission.$PairedUserUid", isEqualTo: true)
+                            .get();
+                    print(
+                        'existChat dataaaaaaaaaaaaaaaaaaaaaaa $CurrentUserUid $PairedUserUid');
+                    print(existChat.size);
+
+                    if (existChat.size != 0) {
+                      Provider.of<pairedUserModel>(context, listen: false)
+                          .addUserInfo(
+                              PairedUserName, PairedUserEmail, PairedUserUid);
+                      print('accessing ${existChat.docs.first.id}');
+                      Provider.of<specificRoomInfo>(context, listen: false)
+                          .chatRoomId = existChat.docs.first.id;
+                      Provider.of<specificRoomInfo>(context, listen: false)
+                          .pairedUserList = [
+                        CurrentUserUid.toString(),
+                        PairedUserUid.toString()
+                      ];
+
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ChatScreen()));
+                      return;
+                    }
                   },
                   child: Container(
                     decoration: BoxDecoration(
