@@ -180,9 +180,6 @@ class buildChatBubble extends StatelessWidget {
           return;
         }
 
-        print(
-            'exxxxxxxxxxxxxxxxisst chaaaaaaaaaaaaaaaaaaaaaaaat ${existChat.docs} size ${existChat.size} and permission.$CurrentUserUid');
-
         DocumentReference<Map<String, dynamic>> roomDoc =
             await FirebaseFirestore.instance.collection("rooms").add({
           'pairs': [globalUserData!.name.trim(), x['name'].toString().trim()],
@@ -260,12 +257,6 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-        // stream: FirebaseFirestore.instance
-        //     .collection("rooms")
-        //     .where("permission.${widget.CurrentUserUid}".trim(),
-        //         isEqualTo: true)
-        //     .orderBy('updated-time', descending: true)
-        //     .snapshots(),
         stream: FirebaseFirestore.instance
             .collection("rooms")
             .where('pairsUid', arrayContains: globalUserData?.uid)
@@ -313,19 +304,18 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
                     List<String>.from(x['pairsEmail']);
 
                 String PairedUserName = pairedUserList.firstWhere(
-                    (i) => i != currentUser.name,
+                    (i) => i.trim() != currentUser.name.trim(),
                     orElse: () => null!);
                 String PairedUserUid = pairedUserUidList.firstWhere(
-                    (i) => i != currentUser.uid,
+                    (i) => i.trim() != currentUser.uid.trim(),
                     orElse: () => null!);
                 String PairedUserEmail = pairedUserEmailList.firstWhere(
-                    (i) => i != currentUser.email,
+                    (i) => i.trim() != currentUser.email.trim(),
                     orElse: () => null!);
 
                 return InkWell(
                   key: UniqueKey(),
                   onTap: () async {
-                    print('masud osman $PairedUserName');
                     QuerySnapshot<Map<String, dynamic>> existChat =
                         await FirebaseFirestore.instance
                             .collection("rooms")
@@ -333,15 +323,11 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
                                 isEqualTo: true)
                             .where("permission.$PairedUserUid", isEqualTo: true)
                             .get();
-                    print(
-                        'existChat dataaaaaaaaaaaaaaaaaaaaaaa $CurrentUserUid $PairedUserUid');
-                    print(existChat.size);
 
                     if (existChat.size != 0) {
                       Provider.of<pairedUserModel>(context, listen: false)
                           .addUserInfo(
                               PairedUserName, PairedUserEmail, PairedUserUid);
-                      print('accessing ${existChat.docs.first.id}');
                       Provider.of<specificRoomInfo>(context, listen: false)
                           .chatRoomId = existChat.docs.first.id;
                       Provider.of<specificRoomInfo>(context, listen: false)
@@ -358,10 +344,10 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
                     }
                   },
                   child: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
-                        const BoxShadow(
+                        BoxShadow(
                           color: Colors.grey,
                           blurRadius: 10.0, // soften the shadow
                           spreadRadius: 5.0, //extend the shadow
@@ -381,8 +367,8 @@ class _ShowMessageListsState extends State<ShowMessageLists> {
                       ),
                       subtitle: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const Text('tap to read messages'),
+                        children: const [
+                          Text('tap to read messages'),
                         ],
                       ),
                     ),
